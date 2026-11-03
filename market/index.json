@@ -1,0 +1,53 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Đông Phong computer-use plugins",
+    "vi": "Plugin điều khiển máy tính của Đông Phong"
+  },
+  "description": {
+    "en": "DeepSeek Harness bundles that give agents real desktop control on Windows.",
+    "vi": "Bundle DeepSeek Harness cho agent điều khiển desktop thật trên Windows."
+  },
+  "plugins": [
+    {
+      "name": "dsh-computer-use-windows",
+      "title": {
+        "en": "Computer Use (Windows)",
+        "vi": "Điều khiển máy tính (Windows)"
+      },
+      "description": {
+        "en": "Real Windows desktop control through Win32: screen capture, mouse, keyboard, windows, clipboard and app launch.",
+        "vi": "Điều khiển desktop Windows thật bằng Win32: chụp màn hình, chuột, bàn phím, cửa sổ, clipboard và mở ứng dụng."
+      },
+      "icon": "icon.svg",
+      "author": "pdong15dth",
+      "homepage": "https://github.com/pdong15dth/dsh-computer-use-windows",
+      "repository": {
+        "url": "https://github.com/pdong15dth/dsh-computer-use-windows"
+      },
+      "metadata": {
+        "keywords": [
+          "computer-use",
+          "desktop-control",
+          "win32",
+          "sendinput",
+          "screen-capture",
+          "keyboard",
+          "mouse",
+          "windows"
+        ]
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "publishTimestamp": 1793723715,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/pdong15dth/dsh-computer-use-windows",
+            "commit": "8762feced62b09d94669db7de7cc9f46223798ad"
+          }
+        }
+      ]
+    }
+  ]
+}
