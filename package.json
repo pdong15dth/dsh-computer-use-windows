@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Real Windows desktop control for DeepSeek Harness: mouse, keyboard, screen capture, windows, clipboard and app launch through Win32 SendInput/GDI/EnumWindows.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pdong15dth/dsh-computer-use-windows.git"
+  },
   "keywords": [
     "dsh-plugin",
     "computer-use",
@@ -24,7 +29,8 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
-    "PROTOCOL.md"
+    "PROTOCOL.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {

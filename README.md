@@ -139,4 +139,11 @@ computer-use/
   PROTOCOL.md            JSON-line contract between plugin and helper
   helper/ComputerHelper.cs   native Win32 helper source
   helper/serve.ps1           PowerShell fallback launcher
+  helper/REPORT-HELPER.md    build command and measured verification
+  LICENSE                    MIT
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE). The icon in `icon.svg` is original artwork for this
+plugin and covered by the same license.
