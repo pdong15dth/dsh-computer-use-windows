@@ -1,0 +1,4 @@
+- insert:
+    - id: computer-use-windows
+      name: dsh-computer-use-windows
+      config: {}

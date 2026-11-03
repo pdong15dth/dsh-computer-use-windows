@@ -1,0 +1,15 @@
+# Local helper build output (rebuilt from source on first tool call).
+helper/build/
+
+# OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / tooling noise
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+node_modules/
