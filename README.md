@@ -48,6 +48,32 @@ Installation links this directory into the profile and inserts the
 dependency: the plugin is dependency-free ESM and the native helper is compiled
 on first use.
 
+## Plugin market
+
+This repository also publishes a format-1 plugin market index, so the bundle can
+be discovered and installed from the Harness **Plugins → Discover** tab instead
+of a local path:
+
+```
+https://raw.githubusercontent.com/pdong15dth/dsh-computer-use-windows/main/market/index.json
+```
+
+Add it as a source of `@deepseek-ai/dsh-plugin-market` (its `indexes` list, for
+example in the profile patch `cordis.patch.yml`), then the tab lists
+`dsh-computer-use-windows`. `plugin_market` reports the same entries to an agent:
+`list_indexes`, `list_plugins`, and `list_versions`, whose install target is
+commit-pinned, e.g.
+
+```
+git+https://github.com/pdong15dth/dsh-computer-use-windows.git#<40-hex-commit>
+```
+
+`market/index.json` is validated with the shipped
+`@deepseek-ai/dsh-plugin-market-index` `parseMarketIndex` validator before it is
+published. Each release needs a new `versions[]` entry pinning that release's
+commit; a published entry is immutable (commit-pinned), so editing this file only
+affects future releases.
+
 ## How the native helper is built
 
 On the first tool call the Host plugin compiles
