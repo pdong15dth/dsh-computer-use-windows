@@ -1,8 +1,8 @@
 {
   "format": 1,
   "title": {
-    "en": "Đông Phong computer-use plugins",
-    "vi": "Plugin điều khiển máy tính của Đông Phong"
+    "en": "Đông computer-use plugins",
+    "vi": "Plugin điều khiển máy tính của Đông"
   },
   "description": {
     "en": "DeepSeek Harness bundles that give agents real desktop control on Windows.",
@@ -20,7 +20,7 @@
         "vi": "Điều khiển desktop qua accessibility tree bằng agent-desktop: snapshot kèm ref, click theo ngữ nghĩa, gõ phím, chụp màn hình, cửa sổ, clipboard và mở ứng dụng."
       },
       "icon": "icon.svg",
-      "author": "pdong15dth",
+      "author": "Đông (pdong15dth)",
       "homepage": "https://github.com/pdong15dth/dsh-computer-use-windows",
       "repository": {
         "url": "https://github.com/pdong15dth/dsh-computer-use-windows"
