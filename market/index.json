@@ -28,16 +28,25 @@
       "metadata": {
         "keywords": [
           "computer-use",
+          "agent-desktop",
+          "accessibility-tree",
+          "ui-automation",
           "desktop-control",
-          "win32",
-          "sendinput",
-          "screen-capture",
-          "keyboard",
-          "mouse",
-          "windows"
+          "windows",
+          "macos",
+          "linux"
         ]
       },
       "versions": [
+        {
+          "version": "2.0.0",
+          "publishTimestamp": 1794108062,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/pdong15dth/dsh-computer-use-windows",
+            "commit": "c39cb8da827a7c0e0cc5f3f1d7c19a0863f02ba1"
+          }
+        },
         {
           "version": "1.0.0",
           "publishTimestamp": 1793723715,
