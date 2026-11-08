@@ -1,175 +1,149 @@
-# Computer Use (Windows) — DeepSeek Harness plugin
+# Computer Use for DeepSeek Harness (agent-desktop)
 
-Gives the model **real** control of this Windows desktop. Every action is a Win32
-call executed by a compiled helper process — no application scripting, no
-AppleScript-style automation, no UI-automation framework, no `SendKeys`.
+DSH bundle that lets an agent **see and operate desktop apps** through
+[`agent-desktop`](https://github.com/vercel-labs/agent-desktop), the Vercel Labs
+CLI that reads and drives the OS accessibility tree — UI Automation on Windows,
+AX on macOS, AT-SPI on Linux.
 
-| Layer | Win32 mechanism |
-| --- | --- |
-| Mouse | `SendInput` (`MOUSEEVENTF_ABSOLUTE \| VIRTUALDESK`, button down/up, wheel) |
-| Keyboard | `SendInput` (`KEYEVENTF_UNICODE`, virtual-key chords with extended flags) |
-| Screen | GDI+ `CopyFromScreen` at the team's physical-pixel resolution |
-| Windows | `EnumWindows`, `GetWindowTextW`, `GetWindowRect`, `SetForegroundWindow`, `ShowWindow`, `PostMessage(WM_CLOSE)` |
-| Clipboard | the real Win32 clipboard on an STA worker thread |
-| Launch | `Process.Start` with `UseShellExecute` (same path as Win+R / Start menu) |
+There is no pixel matching and no private native helper in this repository: the
+plugin is a thin, typed wrapper that runs `agent-desktop` commands and hands the
+JSON envelope to the model.
+
+```
+model → desktop_snapshot (tree + refs) → desktop_act / desktop_type (@ref) → snapshot again to verify
+```
+
+## Requirements
+
+1. Install the CLI once (it carries the native binaries for x64/ARM64):
+
+   ```bash
+   npm install -g agent-desktop
+   agent-desktop status        # platform, permissions, supported surfaces
+   ```
+
+   On macOS the Accessibility grant is required:
+   `agent-desktop permissions --guide`.
+
+2. Install this bundle:
+
+   ```
+   plugin_manager { action: "install_bundle", target: "<absolute path to this repository>" }
+   ```
+
+   or add the market index listed in [Plugin market](#plugin-market) and install
+   from **Plugins → Discover**.
+
+The plugin resolves the native binary itself (`agent-desktop-<platform>-<arch>`)
+from PATH or the npm global root. If it is somewhere else, set the config
+`binPath` or the environment variable `DSH_AGENT_DESKTOP_BIN`.
 
 ## Tools
 
-| Tool | What it does |
+| Tool | Purpose |
 | --- | --- |
-| `computer_info` | Virtual screen, monitors, cursor, DPI-awareness state, elevation |
-| `computer_screenshot` | Capture the desktop, one monitor or an exact region as an image |
-| `computer_mouse_move` | Absolute pointer move |
-| `computer_click` | Left/right/middle click, single or double, with optional move |
-| `computer_drag` | Press, interpolate, release (selection, sliders, window moves) |
-| `computer_scroll` | Wheel notches vertically/horizontally at the pointer |
-| `computer_type` | Real Unicode typing (`\n` = Enter, `\t` = Tab) |
-| `computer_key` | Shortcuts and named keys: `ctrl+shift+t`, `["ctrl+a", "delete"]` |
-| `computer_clipboard` | Read, write or clear the clipboard |
-| `computer_windows` | List top-level windows with handle, title, pid, rect, state |
-| `computer_window_control` | Focus, minimize, maximize, restore or close a window |
-| `computer_launch` | Launch an app, open a path/document, or open a URL |
+| `desktop_status` | Platform, permissions, surfaces, state root, latest snapshot |
+| `desktop_snapshot` | Accessibility tree as JSON with a ref per actionable element (`-i`, `--compact`, `--skeleton`, `--root`, surfaces) |
+| `desktop_find` | Find elements by role / name / text / value / native id and get refs without reading the whole tree |
+| `desktop_inspect` | `get` a property or `is` test on one ref — the cheap verification step |
+| `desktop_act` | `click`, `double_click`, `right_click`, `focus`, `select`, `toggle`, `check`, `uncheck`, `expand`, `collapse`, `scroll`, `scroll_to` on a ref |
+| `desktop_type` | Type text into a ref (stdin, UTF-8, interval support) |
+| `desktop_set_value` | Set a value directly (headless, no keystrokes) |
+| `desktop_press` | Key combination such as `ctrl+s` or `enter`, with `--app`, `--force` |
+| `desktop_screenshot` | PNG of an app window or display, returned as an image block |
+| `desktop_clipboard` | Read / write / clear the clipboard (text up to 128 KiB) |
+| `desktop_apps` | List running apps, launch, close |
+| `desktop_windows` | List windows and displays; focus, minimize, maximize, restore, move, resize |
+| `desktop_wait` | Wait for a duration, element, text, window, menu, event or notification |
+| `desktop_batch` | Run several commands sequentially in one process |
 
-Screenshots answer with the coordinate mapping (`originX`, `originY`, `scale`), so
-image pixel `(ix, iy)` maps to screen point
-`(originX + ix*scale, originY + iy*scale)`. All tool coordinates are physical
-pixels in the virtual-screen space from `computer_info`.
+Ref semantics come from agent-desktop: `@<snapshot_id>:eN` is valid for one
+snapshot only; a stale ref is refused (`STALE_REF` / `AMBIGUOUS_TARGET`) instead
+of acting on the wrong element. Snapshot again after the UI changes.
 
-## Install
+## Headless and headed
 
-The bundle is a plain Host package. From a Harness session:
+Ref actions are semantic UI Automation calls by default: they do not move the
+pointer, take focus or use the clipboard. On Windows a few commands are physical
+by nature — `type`, `double-click`, `right-click`, `focus`, `drag`, `hover`,
+`mouse-*` — and the CLI refuses them headless. The plugin adds `--headed`
+automatically for exactly those commands on Windows; pass `headed: false` to
+observe the refusal, or set `preferHeaded: true` in the config to run everything
+in headed mode.
 
-```
-plugin_manager { action: "install_bundle", target: "<absolute path to this directory>" }
-```
+## Config
 
-Installation links this directory into the profile and inserts the
-`computer-use-windows` row from `cordis.patch.yml`. No build step, no npm
-dependency: the plugin is dependency-free ESM and the native helper is compiled
-on first use.
+`cordis.patch.yml` row config (all optional):
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `binPath` | auto | Absolute path to the agent-desktop native binary |
+| `defaultTimeoutMs` | `60000` | Per-call timeout for ordinary commands |
+| `snapshotTimeoutMs` | `120000` | Timeout for `desktop_snapshot` |
+| `typeTimeoutMs` | `120000` | Timeout for `desktop_type` |
+| `screenshotTimeoutMs` | `60000` | Timeout for `desktop_screenshot` |
+| `preferHeaded` | `false` | Add `--headed` to every command that accepts it |
+
+## Security notes
+
+Accessibility snapshots, screenshots, clipboard reads and command output can
+contain private desktop content. Keep them out of public logs and uploads.
+The CLI refuses destructive shell shortcuts (`alt+f4`, `win+l`, `win+r`, …)
+unless a call passes `force: true` to `desktop_press`.
+
+## Platform support
+
+| Platform | Requirement | API |
+| --- | --- | --- |
+| Windows | Windows 10 1809+ x64/ARM64, interactive session | UI Automation |
+| macOS | macOS 13+, Accessibility grant | AX API |
+| Linux | Ubuntu 24.04+, X11 or Wayland, AT-SPI | AT-SPI |
+
+A minimized window cannot be driven by ref actions — `desktop_windows restore`
+first. Elevation boundaries (UIPI) and the secure desktop are unreachable.
+
+## Verification
+
+Measured on Windows 11 with `agent-desktop` 1.2.0 (`agent-desktop-win32-x64.exe`),
+`accessibility: granted`, 14 tools registered. Real effects, not just envelopes:
+
+| Check | Result |
+| --- | --- |
+| `desktop_status` | platform `windows`, permissions granted, 9 supported surfaces |
+| `desktop_apps launch` | `calc.exe`, `charmap.exe` and `powershell_ise.exe` started with pid |
+| `desktop_windows list` | 11 top-level windows with id, bounds, pid, focus state |
+| `desktop_snapshot` | Calculator tree with 40 refs, `complete: true` |
+| `desktop_find` | found `Plus`, `Three`, `Equals`, `Display is 10` refs without a full tree |
+| `desktop_act click` | semantic `InvokePattern.Invoke`; 7, +, 3, = produced **`Display is 10`** |
+| `desktop_batch` | 5 clicks in 1009 ms, `stop_on_error`, all entries `ok` |
+| `desktop_screenshot` | PNG 1920x1032 returned as an image block |
+| `desktop_set_value` | `ValuePattern.SetValue`, `delivery: delivered_verified`, value read back |
+| `desktop_type` | `SendInput.type_text` (`physical_synthetic`), `delivered_verified`; readback matched the exact text, then cleared with `desktop_press` |
+| `desktop_press` | `ctrl+a`, `delete`, `backspace` delivered to the target app |
+| `desktop_clipboard` | set → get round-tripped exactly, then restored to the previous value |
+| `desktop_windows minimize/restore` | minimized, then `window_restore` `delivered_verified` |
+| `desktop_apps close` | `charmap.exe` and `powershell_ise.exe` exited (`delivered_verified`) |
+
+Test artifacts were closed afterwards, the user clipboard was restored and the
+user's Notepad document was not touched.
+
+Known platform constraint observed: on Windows the CLI refuses physical delivery
+(`type`, `focus`, double/right click) when the target window is not foreground —
+`ACTION_FAILED: Target window did not become foreground before headed delivery`.
+`desktop_set_value` is the headless way to fill a background field; otherwise the
+target window must be focused first.
 
 ## Plugin market
-
-This repository also publishes a format-1 plugin market index, so the bundle can
-be discovered and installed from the Harness **Plugins → Discover** tab instead
-of a local path:
 
 ```
 https://raw.githubusercontent.com/pdong15dth/dsh-computer-use-windows/main/market/index.json
 ```
 
-Add it as a source of `@deepseek-ai/dsh-plugin-market` (its `indexes` list, for
-example in the profile patch `cordis.patch.yml`), then the tab lists
-`dsh-computer-use-windows`. `plugin_market` reports the same entries to an agent:
-`list_indexes`, `list_plugins`, and `list_versions`, whose install target is
-commit-pinned, e.g.
-
-```
-git+https://github.com/pdong15dth/dsh-computer-use-windows.git#<40-hex-commit>
-```
-
-`market/index.json` is validated with the shipped
-`@deepseek-ai/dsh-plugin-market-index` `parseMarketIndex` validator before it is
-published. Each release needs a new `versions[]` entry pinning that release's
-commit; a published entry is immutable (commit-pinned), so editing this file only
-affects future releases.
-
-## How the native helper is built
-
-On the first tool call the Host plugin compiles
-`helper/ComputerHelper.cs` with the .NET Framework compiler that ships with
-Windows:
-
-```
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
-  /nologo /target:winexe /optimize+ /platform:anycpu
-  /out:%LOCALAPPDATA%\dsh-computer-use\dsh-computer-helper.exe
-  /r:System.dll /r:System.Drawing.dll /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll
-  helper/ComputerHelper.cs
-```
-
-The output is cached in `%LOCALAPPDATA%\dsh-computer-use\` and rebuilt when the
-source changes (SHA-256 stamp). It is a `/target:winexe` process, so no console
-window ever flashes, and the Host spawns it with `windowsHide: true`.
-
-If `csc.exe` is unavailable, the plugin falls back to
-`helper/serve.ps1` (`Add-Type` + the same JSON-line loop). That path works but
-starts slower.
-
-Environment overrides:
-
-| Variable | Effect |
-| --- | --- |
-| `DSH_COMPUTER_USE_HELPER` | Use this prebuilt helper `.exe` instead of compiling |
-| `DSH_COMPUTER_USE_CSC` | Use this `csc.exe` to compile the helper |
-
-## Safety
-
-These tools inject input into whatever window currently has focus. A model
-driving them can click, type and close windows on this machine; review actions
-before granting a session that can reach them, and keep unrelated work saved.
-
-Known limits:
-
-- Elevation boundary: a non-elevated helper cannot inject input into elevated
-  windows, and neither can anything reach the UAC secure desktop.
-- Some exclusive-fullscreen games and anti-cheat protected windows ignore
-  synthetic input; that is a platform restriction, not a plugin bug.
-- Screen capture returns the visible desktop composition; content protected by
-  DRM may appear black.
-- The helper runs with the invoking user's rights; it does not elevate itself.
-- Focus is global state: `computer_type` and `computer_key` go to whatever window
-  is foreground at that instant. If a human is also using the machine, focus can
-  change between two tool calls, so a typing sequence can land in the wrong
-  window. Run computer-use work when the desktop is idle, or confirm with
-  `computer_windows` that the intended window reports `[focused]` immediately
-  before typing.
-- Every successful `ctrl+c` overwrites the user's clipboard.
-
-## Verification
-
-Measured on this machine (Windows 11 build 26100, 2 x 1920x1080, per-monitor-v2):
-
-**Helper level** — 22/22 checks against `helper/build/dsh-computer-helper.exe`
-driven over stdio (see `helper/REPORT-HELPER.md`). The decisive ones were real
-effects, not return values: a unique string typed into Notepad came back
-byte-identical through `ctrl+a` / `ctrl+c` / clipboard read; before/after region
-screenshots differed; the cursor read back at the exact requested coordinate;
-Notepad was focused, minimized, restored and closed through window messages.
-
-**Plugin level** — after `plugin_manager install_bundle` reported
-`application: applied`, the registered tools ran against the live desktop:
-`computer_info` (2 monitors, per-monitor-v2, not elevated),
-`computer_screenshot` (returned a real image block plus origin/scale mapping),
-`computer_windows`, `computer_window_control` (focus/minimize/restore/close),
-`computer_launch` (Notepad), `computer_type` (window title changed to
-`*DSH-CU plugin proof 2026-11-03 abcd - Notepad`, proving the characters reached
-the focused control), `computer_key`, `computer_clipboard`, `computer_mouse_move`.
-
-Not exercised through the plugin wrapper on the live desktop: `computer_click`,
-`computer_drag` and `computer_scroll` — the same helper commands were exercised
-by the helper-level test, and the wrappers only forward validated arguments. They
-were skipped at plugin level because this desktop was being used concurrently and
-a synthesized click at absolute coordinates could land on the user's window.
-
-## Files
-
-```
-computer-use/
-  index.js               Host plugin: 12 tools + helper client
-  cordis.patch.yml       bundle patch (inserts the computer-use-windows row)
-  package.json           bundle manifest (dsh.bundle.patch)
-  locale/en.json         Plugin Manager title/description (en)
-  locale/vi.json         Plugin Manager title/description (vi)
-  icon.svg               Plugin artwork
-  PROTOCOL.md            JSON-line contract between plugin and helper
-  helper/ComputerHelper.cs   native Win32 helper source
-  helper/serve.ps1           PowerShell fallback launcher
-  helper/REPORT-HELPER.md    build command and measured verification
-  LICENSE                    MIT
-```
+Add it as a source of `@deepseek-ai/dsh-plugin-market` (its `indexes` list) and
+**Plugins → Discover** lists this bundle. Each release pins its git commit in
+`market/index.json`; a published version entry is immutable.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). The icon in `icon.svg` is original artwork for this
-plugin and covered by the same license.
+MIT — see [LICENSE](LICENSE). The plugin icon is original artwork covered by the
+same license. agent-desktop itself is Apache-2.0 and installed separately.

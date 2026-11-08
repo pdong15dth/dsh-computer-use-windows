@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Computer Use (Windows)",
-    "description": "Real desktop control through Win32: screen capture, mouse, keyboard, windows, clipboard and app launch."
+    "title": "Computer Use (agent-desktop)",
+    "description": "Accessibility-tree desktop control through agent-desktop: snapshots with refs, semantic clicks, typing, screenshots, windows, clipboard and app launch."
   }
 }

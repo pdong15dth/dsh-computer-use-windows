@@ -1,6 +1,3 @@
-# Local helper build output (rebuilt from source on first tool call).
-helper/build/
-
 # OS noise
 Thumbs.db
 Desktop.ini
@@ -13,3 +10,6 @@ Desktop.ini
 npm-debug.log*
 pnpm-debug.log*
 node_modules/
+
+# agent-desktop local state written while testing
+*.png

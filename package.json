@@ -1,9 +1,9 @@
 {
   "name": "dsh-computer-use-windows",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Real Windows desktop control for DeepSeek Harness: mouse, keyboard, screen capture, windows, clipboard and app launch through Win32 SendInput/GDI/EnumWindows.",
+  "description": "Computer use for DeepSeek Harness through agent-desktop: accessibility-tree snapshots with refs, semantic clicks, typing, screenshots, windows, clipboard and app control.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,9 +12,12 @@
   "keywords": [
     "dsh-plugin",
     "computer-use",
+    "agent-desktop",
+    "accessibility-tree",
+    "ui-automation",
     "windows",
-    "win32",
-    "sendinput"
+    "macos",
+    "linux"
   ],
   "exports": {
     ".": "./index.js",
@@ -24,13 +27,12 @@
   "files": [
     "index.js",
     "cordis.patch.yml",
-    "helper/ComputerHelper.cs",
-    "helper/serve.ps1",
     "locale/*.json",
     "icon.svg",
     "README.md",
-    "PROTOCOL.md",
-    "LICENSE"
+    "LICENSE",
+    "market/index.json",
+    "market/icon.svg"
   ],
   "dsh": {
     "bundle": {
